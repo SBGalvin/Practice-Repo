@@ -10,7 +10,7 @@ output:
 This is a test file to see if GitHub still renderd .Rmd files. Code using dplyr chains with the pipe operator ` %>% `
 
 # Options
-```{r setup, include=FALSE}
+```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE,
         scipen = 999)
@@ -51,8 +51,8 @@ test_df_long
 
 
 ## ggplot2
-This is just a quick 
-```{r}
+This is just a quick test 
+```{r, fig.align='center'}
 test_df_long %>% 
   ggplot(aes(x = Response, fill = Group))+
   geom_histogram(colour="white")+
