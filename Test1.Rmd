@@ -10,12 +10,16 @@ output:
 This is a test file to see if GitHub still renderd .Rmd files. Code using dplyr chains with the pipe operator ` %>% `
 
 # Options
+Set the options for the file
 ```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE,
         scipen = 999)
 set.seed(42)
-library(tidyverse)
+
+library(effsize) # for Cohen's D
+library(sjstats) # for omega squared
+library(tidyverse) # for everything else # eg ggplot2, dplyr, magrittr pipe %>% 
 ```
 
 
@@ -59,3 +63,168 @@ test_df_long %>%
   facet_wrap(~Group)+
   theme_minimal()
 ```
+
+A summary table
+```{r}
+test_df_long %>% 
+  # pipe to the groupby function
+  # further functions while be applied to data grouped by the Group argument
+  group_by(Group) %>% 
+  # Summarise the data
+  # Assign a name to a result using =
+  # mean
+  summarise(Mean = mean(Response),
+            # Standard Deviation
+            StDev = sd(Response),
+            # Count of observations per group
+            N = n(),
+            # Standard Error
+            StErr = (StDev/sqrt(N)),
+            # 95% Lower Bound Confidence Interval
+            lwrBound = Mean - (StErr * 1.96),
+            # 95% Upper Bound Confidence Interval
+            uprBound = Mean + (StErr * 1.96)) ->> df_summary # output object
+# print the output object in rmd file
+df_summary
+```
+
+
+```{r}
+# Pass the dataframe as the data argument to ggplot()
+ggplot(data = test_df_long,
+       # Set the aesthetics layer
+       # x is variable of interest
+       # fill sets the colour option
+       aes(x = Response, fill = Group))+
+  geom_histogram(colour="white")+
+  
+  # Error bars
+  # X error bars (in horizontal position)
+  # values generated using a summary table
+  # 95% SE conf int.
+  # y is set to an arbitrary value
+  geom_errorbarh(aes(y = 100, 
+                     # minimum value
+                     xmin = 97.68,
+                     xmax = 99.54),
+                 # sets the height of the error bars
+                 height = 8)+
+  # y error bars (in horizontal position)
+  # values generated using a summary table
+  # 95% SE conf int.
+  # y is set to an arbitrary value
+  geom_errorbarh(aes(y = 80, 
+                     # min value
+                     xmin = 100.00,
+                     # max value
+                     xmax = 101.84),
+                 # sets height of the error bars
+                 height = 8)+
+  # X mean
+  # generated using the point geometry
+  # y is set to an arbitrary value, same as line 16
+  geom_point(aes(y = 100, x = mean(test_df_long[Group=="x",]$Response)),
+             # Sets point colour to white
+             colour = "white")+
+  # Y mean
+  # generated using the point geometry
+  # y is set to an arbitrary value, same as line 26
+  geom_point(aes(y = 80, x = mean(test_df_long[Group=="y",]$Response)),
+             # Sets point colour to white
+             colour = "white")+
+  # adds the minimal theme to the plot output
+  theme_minimal()+
+  # Places the legend at the top of the plot
+  theme(legend.position = "top")
+```
+
+Violin plot
+```{r}
+ggplot(test_df_long, aes(x = Group, y = Response, fill=Group))+
+  geom_violin()+
+  # Plot a boxplot inside the violin
+  geom_boxplot(fill='white', width=.3)+
+  theme_minimal()
+```
+
+# Three
+### t-test
+Perform a two sample t-test
+```{r}
+model_t_test <- t.test(Response~Group, data = test_df_long)
+```
+
+#### t-test output
+```{r}
+model_t_test
+```
+
+#### effect size
+using the `effsize` package
+```{r}
+effect_D <- cohen.d(Response ~ Group, data = test_df_long)
+effect_D$estimate
+```
+#### Tidy
+
+```{r}
+# Create a summary of the t-test uisng tidy() from the broom package
+broom::tidy(model_t_test) ->> tidy_t_test
+
+# Assign cohens D to a column in the summary table
+tidy_t_test$D <- effect_D$estimate # Cohens D
+```
+#### Present the table
+```{r}
+# Print the t-test output
+tidy_t_test
+```
+
+
+We can see from the output that the effect size `D` is quite small `-0.1547178`
+
+### Linear Model
+```{r}
+model_lm <- lm(Response~Group, data = test_df_long)
+```
+
+```{r}
+summary(model_lm)
+```
+```{r}
+model_lm$residuals ->> Resid_D
+
+leftovers <- data.frame(id = seq(1:length(Resid_D)), Residuals = Resid_D)
+                        
+ggplot(leftovers,
+       aes(x = Residuals))+
+  geom_histogram(colour = "white")+
+  # adds the minimal theme to the plot output
+  theme_minimal()
+```
+
+```{r}
+broom::tidy(model_lm) ->> lm_summary
+```
+```{r}
+sjstats::omega_sq(model_lm) ->> Omega_SQ
+sjstats::cohens_f(model_lm)
+#Omega_SQ$
+lm_summary$OMEGA  <- c("-", Omega_SQ$omegasq)
+```
+
+View the Summary table
+```{r}
+lm_summary
+```
+
+```{r}
+test_df_long %>% 
+  ggplot(aes(x = Group, y = Response))+
+  geom_point(alpha = .3)+
+  geom_abline(intercept = 98.61, slope = 2.3, size = 2,
+              colour = "tomato",
+              linetype = "dotted")+
+  theme_minimal()
+```
+
