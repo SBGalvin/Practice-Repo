@@ -1,0 +1,61 @@
+---
+title: "Test 1"
+author: "SB Galvin"
+date: "17 December 2018"
+output: 
+  html_document:
+    df_print: paged
+---
+# Introduction
+This is a test file to see if GitHub still renderd .Rmd files. Code using dplyr chains with the pipe operator ` %>% `
+
+# Options
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE,
+        scipen = 999)
+set.seed(42)
+library(tidyverse)
+```
+
+
+# One
+Make some data
+```{r}
+test_df  <-  data.frame(x = rnorm(1000, 99, 15),
+                        y = rnorm(1000, 101, 15))
+```
+
+Show the dataframe  
+```{r}
+test_df
+```
+
+The columns are two different groups. The rows are not unique cases.
+
+# Two
+Wide data to long data
+The columns are two different groups. The rows are not unique cases.
+```{r}
+test_df %>% 
+  
+  # wide to long
+  gather(Group, Response, x:y) ->> test_df_long
+```
+
+Show the new df
+Each column is a variable, each row is an observation
+```{r}
+test_df_long
+```
+
+
+## ggplot2
+This is just a quick 
+```{r}
+test_df_long %>% 
+  ggplot(aes(x = Response, fill = Group))+
+  geom_histogram(colour="white")+
+  facet_wrap(~Group)+
+  theme_minimal()
+```
